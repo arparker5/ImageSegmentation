@@ -1,10 +1,15 @@
 from PIL import Image
+from skimage import data
+from matplotlib import pyplot as plt
 import numpy as np
+import scipy as sp
+import sys
+np.set_printoptions(threshold=sys.maxsize)
 
-def load_image( filename):
-    img = Image.open(filename)
-    img.load()
-    data = np.asarray(img, dtype="int32")
-    return data
+img = Image.open("imgtest.jpeg").convert('L')
+img.save('greyscale.png')
+x = np.asarray(img)
 
+print(x)
 
+# np.savetxt("numpytest.txt", x, delimiter=',')
