@@ -4,6 +4,29 @@ from matplotlib import pyplot as plt
 import numpy as np
 import scipy as sp
 import sys
+import glob
+import os
+
+
+def getFileImages(cwd):
+    print("Extracting test images...")
+    carimagecount = 0
+    negimagecount = 0
+    carimage_list = []
+    negimage_list = []
+    st = os.path.join(cwd, "*.png")
+
+    for imagename in glob.glob(st):
+        if imagename[89] == 'c':
+            carimage_list.append(imagename)
+            carimagecount += 1
+        else:
+            negimage_list.append(imagename)
+            negimagecount += 1
+    print("Extracted ", carimagecount, " car images")
+    print("Extracted ", negimagecount, " neg images")
+    return carimage_list, negimage_list
+
 
 
 def convolution(img, filter, s=1):
@@ -71,4 +94,9 @@ mp = maxpool(conimg)
 
 print(conimg.shape)
 print(mp.shape)
+
+imageLocation = '\\Columbus_CSUAV_AFRL\\train'        # Where training images are stored relative to the CWD
+getFileImages(os.getcwd() + imageLocation)
+
+
 
