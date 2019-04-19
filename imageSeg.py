@@ -6,9 +6,10 @@ import scipy as sp
 import sys
 import glob
 import os
+import math
 
 
-def getFileImages(cwd):
+def getFileImages(cwd):                 # Extracts training images of cars and negatives and puts them into two lists
     print("Extracting test images...")
     carimagecount = 0
     negimagecount = 0
@@ -28,8 +29,7 @@ def getFileImages(cwd):
     return carimage_list, negimage_list
 
 
-
-def convolution(img, filter, s=1):
+def convolution(img, filter, bias=0, s=1):
     (imgy, imgx) = img.shape
     (filty, filtx) = filter.shape
 
@@ -44,13 +44,15 @@ def convolution(img, filter, s=1):
         out_x = 0
         while current_x + filtx <= imgx:
             a = filter * img[current_y:current_y + filty, current_x:current_x + filtx]
-            outmtx[out_y, out_x] = a.sum()
+            outmtx[out_y, out_x] = a.sum() + bias
             current_x += 1
             out_x += 1
         current_y += 1
         out_y += 1
 
-    return outmtx
+    cache = (img, filter)  # Storing for later backpropagation
+
+    return outmtx, cache
 
 
 def maxpool(img, filt=2, s=2):
@@ -77,7 +79,38 @@ def maxpool(img, filt=2, s=2):
     return outmtx
 
 
+def activation(inp):                             # Sigmoid function
+    return math.exp(inp)/(math.exp(inp) + 1)
 
+
+o = np.array([(0.51, 0.9, 0.88, 0.84, 0.05),
+              (0.4, 0.62, 0.22, 0.59, 0.1),
+              (0.11, 0.2, 0.74, 0.33, 0.14),
+              (0.47, 0.01, 0.85, 0.7, 0.09),
+              (0.76, 0.19, 0.72, 0.17, 0.57)])
+
+d = np.array([(-0.13, 0.15),
+              (-0.51, 0.62)])
+
+z = maxpool(convolution(o, d)[0])
+i = z.flatten()
+n = np.zeros((4, 1))                              # list of nodes after activation
+
+for x in range(i.size):
+    n[x] = (round(activation(i[x]), 2))
+
+print(n, "\n")
+
+stddev = 1/np.sqrt(np.prod(8))
+w = np.random.normal(loc=0, scale=stddev, size=8)  # Initializes weights randomly on a normal distribution
+w = np.reshape(w, (2, 4))                          # Reshape to a 2x4 matrix for multiplication
+w = np.around(w, 2)
+print(w, "\n")
+
+print(np.matmul(w, n))
+
+
+'''
 np.set_printoptions(threshold=sys.maxsize)
 img = Image.open("pixilimg.png").convert('L')
 img.save('imggrey.png')
@@ -88,7 +121,7 @@ filt.save('filtergrey.png')
 filtg = np.asarray(filt)
 
 
-conimg = convolution(imgg, filtg)
+conimg = convolution(imgg, filtg)[0]
 
 mp = maxpool(conimg)
 
@@ -97,6 +130,8 @@ print(mp.shape)
 
 imageLocation = '\\Columbus_CSUAV_AFRL\\train'        # Where training images are stored relative to the CWD
 getFileImages(os.getcwd() + imageLocation)
+'''
+
 
 
 
