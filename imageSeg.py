@@ -62,6 +62,7 @@ def maxpool(img, filt=2, s=2):
     outdim_y = int((imgy - filt)/s) + 1
 
     outmtx = np.zeros((outdim_y, outdim_x))
+    maxpos = []                                 # Holds the indices of the max
 
     current_y = 0
     out_y = 0
@@ -71,12 +72,14 @@ def maxpool(img, filt=2, s=2):
         while current_x + filt <= imgx:
             a = img[current_y:current_y + filt, current_x:current_x + filt]
             outmtx[out_y, out_x] = np.max(a)
+            ind = np.unravel_index(np.argmax(a, axis=None), a.shape)
+            maxpos.append((ind[1] + current_x, ind[0] + current_y))
             current_x += s
             out_x += 1
         current_y += s
         out_y += 1
 
-    return outmtx
+    return outmtx, maxpos
 
 
 def activation(inp):                             # Sigmoid function
@@ -96,8 +99,9 @@ o = np.array([(0.51, 0.9, 0.88, 0.84, 0.05),
 d = np.array([(-0.13, 0.15),
               (-0.51, 0.62)])
 
-z = maxpool(convolution(o, d)[0])
-i = z.flatten()
+c = convolution(o, d)[0]
+z = maxpool(c)                                    # z[0] is max pool, z[1] is location of maxes
+i = z[0].flatten()
 n = np.zeros((4, 1))                              # list of nodes after activation
 
 for x in range(i.size):
@@ -112,8 +116,8 @@ w = np.around(w, 2)
 print(w, " are the weights\n")                                     # Prints hidden layer of weights
 
 delta = np.matmul(w, n)
-print(delta, "\n")                             # Network output
-                                               # begin backpropagation
+print(delta, "\n\n ----- Begin Backpropagation -----\n")   # Network output
+                                                           # begin backpropagation
 delta[0] = delta[0] - 1
 
 print(delta, "is Delta\n")
@@ -127,6 +131,15 @@ for i in range(n.size):
     gradientmapin[i] = wt[i] * deriveact(n[i])
 
 print(gradientmapin)
+
+revmp = np.zeros(c.shape)
+
+for i in range(gradientmapin.size):
+    revmp[z[1][i][1]][z[1][i][0]] = gradientmapin[i]
+
+print(revmp)
+
+
 
 '''
 np.set_printoptions(threshold=sys.maxsize)
