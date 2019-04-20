@@ -37,20 +37,22 @@ def convolution(img, filter, bias=0, s=1):
     outdim_y = int((imgy - filty)/s) + 1
     outmtx = np.zeros((outdim_y, outdim_x))
 
+    filtflip = np.flip(filter)
+
     current_y = 0
     out_y = 0
     while current_y + filty <= imgy:
         current_x = 0
         out_x = 0
         while current_x + filtx <= imgx:
-            a = filter * img[current_y:current_y + filty, current_x:current_x + filtx]
+            a = filtflip * img[current_y:current_y + filty, current_x:current_x + filtx]
             outmtx[out_y, out_x] = a.sum() + bias
             current_x += 1
             out_x += 1
         current_y += 1
         out_y += 1
 
-    cache = (img, filter)  # Storing for later backpropagation
+    cache = (img, filtflip)  # Storing for later backpropagation
 
     return outmtx, cache
 
@@ -130,15 +132,18 @@ gradientmapin = np.zeros((4, 1))
 for i in range(n.size):
     gradientmapin[i] = wt[i] * deriveact(n[i])
 
-print(gradientmapin)
+print(gradientmapin, "\n")
 
 revmp = np.zeros(c.shape)
 
 for i in range(gradientmapin.size):
-    revmp[z[1][i][1]][z[1][i][0]] = gradientmapin[i]
+    revmp[z[1][i][1]][z[1][i][0]] = gradientmapin[i]        # puts the gradients in place to reverse max pooling
 
 print(revmp)
 
+congrad = convolution(o, revmp)[0]
+
+print(congrad)
 
 
 '''
