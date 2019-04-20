@@ -92,6 +92,52 @@ def deriveact(act):             # input activation result, output the derivative
     return act*(1-act)
 
 
+def run(o, d, w, learnfactor):
+    c = convolution(o, d)[0]
+    z = maxpool(c)                                    # z[0] is max pool, z[1] is location of maxes
+    i = z[0].flatten()
+    n = np.zeros((4, 1))                              # list of nodes after activation
+
+    for x in range(i.size):
+        n[x] = (round(activation(i[x]), 2))
+
+    # print(n, "are the inputs to the net\n")            # Prints inputs into the dense network
+
+    delta = np.matmul(w, n)
+    e = (delta[0] - 1)**2 + (delta[1])**2
+    print("Error =", e, " ***************************")
+    # print(delta, "\n\n ----- Begin Backpropagation -----\n")   # Network output
+                                                               # begin backpropagation
+    delta[0] = delta[0] - 1
+
+    # print(delta, "is Delta\n")
+
+    wt = w.transpose()
+    wt = np.matmul(wt, delta)
+
+    gradientmapin = np.zeros((4, 1))
+
+    for i in range(n.size):
+        gradientmapin[i] = wt[i] * deriveact(n[i])
+
+    # print(gradientmapin, "\n")
+
+    revmp = np.zeros(c.shape)
+
+    for i in range(gradientmapin.size):
+        revmp[z[1][i][1]][z[1][i][0]] = gradientmapin[i]        # puts the gradients in place to reverse max pooling
+
+    # print(revmp)
+
+    congradient = learnfactor * np.around(convolution(o, revmp)[0], 2)
+
+    # print(congradient)
+
+    d = np.subtract(d, congradient)                             # New Kernel
+    # print(d, "New Kernel\n")
+    return d
+
+
 o = np.array([(0.51, 0.9, 0.88, 0.84, 0.05),
               (0.4, 0.62, 0.22, 0.59, 0.1),
               (0.11, 0.2, 0.74, 0.33, 0.14),
@@ -101,50 +147,16 @@ o = np.array([(0.51, 0.9, 0.88, 0.84, 0.05),
 d = np.array([(-0.13, 0.15),
               (-0.51, 0.62)])
 
-c = convolution(o, d)[0]
-z = maxpool(c)                                    # z[0] is max pool, z[1] is location of maxes
-i = z[0].flatten()
-n = np.zeros((4, 1))                              # list of nodes after activation
-
-for x in range(i.size):
-    n[x] = (round(activation(i[x]), 2))
-
-print(n, "are the inputs to the net\n")            # Prints inputs into the dense network
-
 stddev = 1/np.sqrt(np.prod(8))
 w = np.random.normal(loc=0, scale=stddev, size=8)  # Initializes weights randomly on a normal distribution
 w = np.reshape(w, (2, 4))                          # Reshape to a 2x4 matrix for multiplication
 w = np.around(w, 2)
-print(w, " are the weights\n")                                     # Prints hidden layer of weights
+print(w, " are the initial weights\n")             # Prints hidden layer of weights
 
-delta = np.matmul(w, n)
-print(delta, "\n\n ----- Begin Backpropagation -----\n")   # Network output
-                                                           # begin backpropagation
-delta[0] = delta[0] - 1
+learnfactor = 1
 
-print(delta, "is Delta\n")
-
-wt = w.transpose()
-wt = np.matmul(wt, delta)
-
-gradientmapin = np.zeros((4, 1))
-
-for i in range(n.size):
-    gradientmapin[i] = wt[i] * deriveact(n[i])
-
-print(gradientmapin, "\n")
-
-revmp = np.zeros(c.shape)
-
-for i in range(gradientmapin.size):
-    revmp[z[1][i][1]][z[1][i][0]] = gradientmapin[i]        # puts the gradients in place to reverse max pooling
-
-print(revmp)
-
-congrad = convolution(o, revmp)[0]
-
-print(congrad)
-
+for i in range(500):
+    d = run(o, d, w, learnfactor)
 
 '''
 np.set_printoptions(threshold=sys.maxsize)
