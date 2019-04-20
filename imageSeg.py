@@ -104,10 +104,30 @@ def run(o, d, w, learnfactor):
     # print(n, "are the inputs to the net\n")            # Prints inputs into the dense network
 
     delta = np.matmul(w, n)
+
+    for i in range(delta.size):
+        delta[i] = activation(delta[i])
+
+    deltasave = delta.copy()
+
+    error = np.zeros((2, 1))
+    error[0] = delta[0] - 1
+    error[1] = delta[1]
+
     e = (delta[0] - 1)**2 + (delta[1])**2
     print("Error =", e, " ***************************")
-    # print(delta, "\n\n ----- Begin Backpropagation -----\n")   # Network output
-                                                               # begin backpropagation
+    print(deltasave)
+
+    errsig = np.zeros((2, 1))                                    # begin calculating new weights
+    #errsig = errsig[:, None]
+    for i in range(errsig.size):
+        errsig[i][0] = error[i] * deriveact(deltasave[i])
+
+    weightgrad = np.matmul(errsig, np.transpose(n))
+    # print(weightgrad)
+
+    w = np.subtract(w, weightgrad)
+
     delta[0] = delta[0] - 1
 
     # print(delta, "is Delta\n")
@@ -135,7 +155,8 @@ def run(o, d, w, learnfactor):
 
     d = np.subtract(d, congradient)                             # New Kernel
     # print(d, "New Kernel\n")
-    return d
+
+    return d, w
 
 
 o = np.array([(0.51, 0.9, 0.88, 0.84, 0.05),
@@ -153,10 +174,10 @@ w = np.reshape(w, (2, 4))                          # Reshape to a 2x4 matrix for
 w = np.around(w, 2)
 print(w, " are the initial weights\n")             # Prints hidden layer of weights
 
-learnfactor = 1
+learnfactor = 100
 
 for i in range(500):
-    d = run(o, d, w, learnfactor)
+    d, w = run(o, d, w, learnfactor)
 
 '''
 np.set_printoptions(threshold=sys.maxsize)
