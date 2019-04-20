@@ -165,8 +165,13 @@ o = np.array([(0.51, 0.9, 0.88, 0.84, 0.05),
               (0.47, 0.01, 0.85, 0.7, 0.09),
               (0.76, 0.19, 0.72, 0.17, 0.57)])
 
-d = np.array([(-0.13, 0.15),
-              (-0.51, 0.62)])
+stddev = 1/np.sqrt(np.prod(4))
+d = np.random.normal(loc=0, scale=stddev, size=4)  # Initializes kernel randomly on a normal distribution
+d = np.reshape(d, (2, 2))
+d = np.around(d, 2)
+
+# d = np.array([(-0.13, 0.15),
+              # (-0.51, 0.62)])
 
 stddev = 1/np.sqrt(np.prod(8))
 w = np.random.normal(loc=0, scale=stddev, size=8)  # Initializes weights randomly on a normal distribution
