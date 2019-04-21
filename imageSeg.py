@@ -94,6 +94,35 @@ def activation(inp):                             # Sigmoid function
 def deriveact(act):             # input activation result, output the derivative
     return act*(1-act)
 
+def run(o, d, w1, w2):
+    c = convolution(o, d)[0]
+    z = maxpool(c)  # z[0] is max pool, z[1] is location of maxes
+    i = z[0].flatten()
+    n = np.zeros((8649, 1))  # list of input nodes after activation
+
+    for x in range(i.size):
+        n[x] = (round(activation(i[x]), 2))
+
+    feedforward = np.matmul(w1, n)  # Feed input through first layer
+    for i in range(feedforward.size):
+        feedforward[i] = activation(feedforward[i])
+
+    feedforward = np.matmul(w2, feedforward)  # Feed input through second layer
+    for i in range(feedforward.size):
+        feedforward[i] = activation(feedforward[i])
+
+    error = np.zeros((2, 1))
+    error[0] = feedforward[0] - 1
+    error[1] = feedforward[1]
+
+    e = (feedforward[0] - 1) ** 2 + (feedforward[1]) ** 2
+    print("Error =", e, " ***************************")
+    print(feedforward)
+    if feedforward[0] > 0.70:
+        print("It's a car!")
+    else:
+        print("It is not a car")
+
 
 def train(o, d, w1, w2, learnfactor):
     c = convolution(o, d)[0]
@@ -178,13 +207,25 @@ def train(o, d, w1, w2, learnfactor):
 
 
 imageLocation = '\\Columbus_CSUAV_AFRL\\train'        # Where training images are stored relative to the CWD
-pic = getFileImages(os.getcwd() + imageLocation)[0][0]
-img = Image.open(pic).convert('L')
-o = np.asarray(img)
+carpics = []
+o = []
+for i in range(11):
+    carpics.append(getFileImages(os.getcwd() + imageLocation)[0][i])
+    img = Image.open(carpics[i]).convert('L')
+    o.append(np.asarray(img))
+
+negpics = []
+n = []
+for i in range(11):
+    negpics.append(getFileImages(os.getcwd() + imageLocation)[0][i])
+    img = Image.open(negpics[i]).convert('L')
+    n.append(np.asarray(img))
 
 stddev = 1/np.sqrt(np.prod(4900))
-d = np.random.normal(loc=0, scale=stddev, size=4900)  # Initializes kernel randomly on a normal distribution
-d = np.reshape(d, (70, 70))
+d = []
+for i in range(3):
+    d.append(np.random.normal(loc=0, scale=stddev, size=4900))  # Initializes kernel randomly on a normal distribution
+    d[i] = np.reshape(d[i], (70, 70))
 
 
 '''
@@ -208,8 +249,12 @@ print(w1, " are the initial weights for w1\n")             # Prints hidden layer
 
 learnfactor = 10
 
-for i in range(2):
-    d, w1, w2 = train(o, d, w1, w2, learnfactor)
+for i in range(1):
+    for k in range(10):
+        for j in range(len(d)):                                      # Train all the filters
+            d[j], w1, w2 = train(o[k], d[j], w1, w2, learnfactor)
+
+run(o[10], d[1], w1, w2)
 
 '''
 np.set_printoptions(threshold=sys.maxsize)
