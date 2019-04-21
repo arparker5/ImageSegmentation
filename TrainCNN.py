@@ -9,6 +9,13 @@ import os
 import math
 
 
+def scale(X, x_min, x_max):              # Normalizes the input image
+    nom = (X-X.min())*(x_max-x_min)
+    denom = X.max() - X.min()
+    denom = denom + (denom is 0)
+    return x_min + nom/denom
+
+
 def getFileImages(cwd):                 # Extracts training images of cars and negatives and puts them into two lists
     print("Extracting test images...")
     carimagecount = 0
@@ -94,6 +101,7 @@ def activation(inp):                             # Sigmoid function
 def deriveact(act):             # input activation result, output the derivative
     return act*(1-act)
 
+
 def run(o, d, w1, w2):
     c = convolution(o, d)[0]
     z = maxpool(c)  # z[0] is max pool, z[1] is location of maxes
@@ -118,13 +126,14 @@ def run(o, d, w1, w2):
     e = (feedforward[0] - 1) ** 2 + (feedforward[1]) ** 2
     print("Error =", e, " ***************************")
     print(feedforward)
-    if feedforward[0] > 0.70:
+    '''if feedforward[0] > 0.70:
         print("It's a car!")
     else:
-        print("It is not a car")
+        print("It is not a car")'''
+    return feedforward
 
 
-def train(o, d, w1, w2, learnfactor):
+def train(o, d, w1, w2, learnfactor, label):
     c = convolution(o, d)[0]
     z = maxpool(c)                                    # z[0] is max pool, z[1] is location of maxes
     i = z[0].flatten()
@@ -148,10 +157,15 @@ def train(o, d, w1, w2, learnfactor):
     deltasave = feedforward.copy()
 
     error = np.zeros((2, 1))
-    error[0] = feedforward[0] - 1
-    error[1] = feedforward[1]
+    if label == 1:                              # label == 1: training image is a car
+        error[0] = feedforward[0] - 1
+        error[1] = feedforward[1]
+        e = (feedforward[0] - 1) ** 2 + (feedforward[1]) ** 2
+    else:                                       # Else: Training image is a negative
+        error[0] = feedforward[0]
+        error[1] = feedforward[1] - 1
+        e = (feedforward[0]) ** 2 + (feedforward[1] - 1) ** 2
 
-    e = (feedforward[0] - 1)**2 + (feedforward[1])**2
     print("Error =", e, " ***************************")
     print(deltasave)
 
@@ -207,19 +221,14 @@ def train(o, d, w1, w2, learnfactor):
 
 
 imageLocation = '\\Columbus_CSUAV_AFRL\\train'        # Where training images are stored relative to the CWD
-carpics = []
 o = []
-for i in range(11):
-    carpics.append(getFileImages(os.getcwd() + imageLocation)[0][i])
-    img = Image.open(carpics[i]).convert('L')
-    o.append(np.asarray(img))
-
-negpics = []
 n = []
-for i in range(11):
-    negpics.append(getFileImages(os.getcwd() + imageLocation)[0][i])
-    img = Image.open(negpics[i]).convert('L')
-    n.append(np.asarray(img))
+(carpics, negpics) = getFileImages(os.getcwd() + imageLocation)
+for i in range(100):
+    img = Image.open(carpics[i]).convert('L')
+    negimg = Image.open(negpics[i]).convert('L')
+    o.append(scale(np.asarray(img), -1, 1))
+    n.append(scale(np.asarray(negimg), -1, 1))
 
 stddev = 1/np.sqrt(np.prod(4900))
 d = []
@@ -248,40 +257,38 @@ print(w1, " are the initial weights for w1\n")             # Prints hidden layer
 
 
 learnfactor = 10
-
+'''
 for i in range(1):
-    for k in range(10):
-        for j in range(len(d)):                                      # Train all the filters
-            d[j], w1, w2 = train(o[k], d[j], w1, w2, learnfactor)
+    for k in range(2):                                              # run through the training images
+        for j in range(len(d)):                                     # Train all the filters'''
 
-run(o[10], d[1], w1, w2)
 
+d[0], w1, w2 = train(n[0], d[0], w1, w2, learnfactor, 0)        # Train a neg
+d[0], w1, w2 = train(n[0], d[0], w1, w2, learnfactor, 0)        # Train a neg
+d[0], w1, w2 = train(n[0], d[0], w1, w2, learnfactor, 0)        # Train a neg
+
+d[0], w1, w2 = train(o[0], d[0], w1, w2, learnfactor, 1)        # Train a car
+d[0], w1, w2 = train(o[0], d[0], w1, w2, learnfactor, 1)        # Train a car
+d[0], w1, w2 = train(o[0], d[0], w1, w2, learnfactor, 1)        # Train a car
+
+
+
+
+
+#print((j+1)*(k+1)*2, "/ 30 images trained")
 '''
-np.set_printoptions(threshold=sys.maxsize)
-img = Image.open("pixilimg.png").convert('L')
-img.save('imggrey.png')
-imgg = np.asarray(img)
+avg = np.zeros((2, 1))
+for i in range(len(d)):
+    avg = np.add(avg, run(n[70], d[i], w1, w2))
 
-filt = Image.open("filter.png").convert('L')
-filt.save('filtergrey.png')
-filtg = np.asarray(filt)
+avg = np.divide(avg, len(d))
+print("Error average:", avg)
+if avg[0] > 0.70:
+    print("It's a car!")
+elif avg[0] < 0.30:
+    print("It is not a car")
+else:
+    print("Undetermined")'''
 
-
-conimg = convolution(imgg, filtg)[0]
-
-mp = maxpool(conimg)
-
-print(conimg.shape)
-print(mp.shape)
-
-o = np.array([(0.51, 0.9, 0.88, 0.84, 0.05),
-              (0.4, 0.62, 0.22, 0.59, 0.1),
-              (0.11, 0.2, 0.74, 0.33, 0.14),
-              (0.47, 0.01, 0.85, 0.7, 0.09),
-              (0.76, 0.19, 0.72, 0.17, 0.57)])
-
-'''
-
-
-
+# np.set_printoptions(threshold=sys.maxsize)
 
