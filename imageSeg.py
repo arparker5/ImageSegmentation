@@ -85,7 +85,10 @@ def maxpool(img, filt=2, s=2):
 
 
 def activation(inp):                             # Sigmoid function
-    return math.exp(inp)/(math.exp(inp) + 1)
+    try:
+        return math.exp(inp)/(math.exp(inp) + 1)
+    except OverflowError:
+        return math.exp(99)/(math.exp(99) + 1)
 
 
 def deriveact(act):             # input activation result, output the derivative
