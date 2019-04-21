@@ -92,11 +92,11 @@ def deriveact(act):             # input activation result, output the derivative
     return act*(1-act)
 
 
-def run(o, d, w1, w2, learnfactor):
+def train(o, d, w1, w2, learnfactor):
     c = convolution(o, d)[0]
     z = maxpool(c)                                    # z[0] is max pool, z[1] is location of maxes
     i = z[0].flatten()
-    n = np.zeros((4, 1))                              # list of input nodes after activation
+    n = np.zeros((8649, 1))                              # list of input nodes after activation
 
     for x in range(i.size):
         n[x] = (round(activation(i[x]), 2))
@@ -131,17 +131,14 @@ def run(o, d, w1, w2, learnfactor):
 
     w2 = np.subtract(w2, weightgrad2)
 
-    errsig1 = np.zeros((2, 1))                                   # Begin calculating new weights for w1
-    errsig1_2 = np.zeros((2, 1))
+    errsig1 = np.zeros((1000, 1))                                # Begin calculating new weights for w1
+
     for i in range(errsig1.size):
-        errsig1[i][0] = error[i] * deriveact(deltasave[i])
+        errsig1[i][0] = error[0] * deriveact(deltasave[0]) + error[1] * deriveact(deltasave[1])
 
-    for i in range(errsig1_2.size):
-        errsig1_2[i][0] = error[1-i] * deriveact(deltasave[1-i])
+    # weightgrad = np.add(errsig1, errsig1_2)
 
-    weightgrad = np.add(errsig1, errsig1_2)
-
-    weightgrad = np.matmul(weightgrad, np.transpose(n))
+    weightgrad = np.matmul(errsig1, np.transpose(n))
     # print(weightgrad)
 
     w1 = np.subtract(w1, weightgrad)
@@ -151,9 +148,9 @@ def run(o, d, w1, w2, learnfactor):
     # print(delta, "is Delta\n")
 
     wt = w1.transpose()
-    wt = np.matmul(wt, error)
+    wt = np.matmul(wt, errsig1)
 
-    gradientmapin = np.zeros((4, 1))
+    gradientmapin = np.zeros((8649, 1))
 
     for i in range(n.size):
         gradientmapin[i] = wt[i] * deriveact(n[i])
@@ -177,37 +174,39 @@ def run(o, d, w1, w2, learnfactor):
     return d, w1, w2
 
 
-o = np.array([(0.51, 0.9, 0.88, 0.84, 0.05),
-              (0.4, 0.62, 0.22, 0.59, 0.1),
-              (0.11, 0.2, 0.74, 0.33, 0.14),
-              (0.47, 0.01, 0.85, 0.7, 0.09),
-              (0.76, 0.19, 0.72, 0.17, 0.57)])
+imageLocation = '\\Columbus_CSUAV_AFRL\\train'        # Where training images are stored relative to the CWD
+pic = getFileImages(os.getcwd() + imageLocation)[0][0]
+img = Image.open(pic).convert('L')
+o = np.asarray(img)
 
+stddev = 1/np.sqrt(np.prod(4900))
+d = np.random.normal(loc=0, scale=stddev, size=4900)  # Initializes kernel randomly on a normal distribution
+d = np.reshape(d, (70, 70))
+
+
+'''
 stddev = 1/np.sqrt(np.prod(4))
 d = np.random.normal(loc=0, scale=stddev, size=4)  # Initializes kernel randomly on a normal distribution
 d = np.reshape(d, (2, 2))
-d = np.around(d, 2)
+d = np.around(d, 2)'''
 
-# d = np.array([(-0.13, 0.15),
-              # (-0.51, 0.62)])
+stddev = 1/np.sqrt(np.prod(2000))
+w2 = np.random.normal(loc=0, scale=stddev, size=2000)  # Initializes weights randomly on a normal distribution
+w2 = np.reshape(w2, (2, 1000))                             # Reshape to a 2x1000 matrix for multiplication
+w2 = np.around(w2, 2)
+print(w2, " are the initial weights for w2\n")             # Prints hidden layer of weights
 
-stddev = 1/np.sqrt(np.prod(8))
-w1 = np.random.normal(loc=0, scale=stddev, size=8)  # Initializes weights randomly on a normal distribution
-w1 = np.reshape(w1, (2, 4))                          # Reshape to a 2x4 matrix for multiplication
+stddev = 1/np.sqrt(np.prod(8649000))
+w1 = np.random.normal(loc=0, scale=stddev, size=8649000)  # Initializes weights randomly on a normal distribution
+w1 = np.reshape(w1, (1000, 8649))                          # Reshape to a 1000x8649 matrix for multiplication
 w1 = np.around(w1, 2)
 print(w1, " are the initial weights for w1\n")             # Prints hidden layer of weights
 
 
-stddev = 1/np.sqrt(np.prod(4))
-w2 = np.random.normal(loc=0, scale=stddev, size=4)  # Initializes weights randomly on a normal distribution
-w2 = np.reshape(w2, (2, 2))                          # Reshape to a 2x4 matrix for multiplication
-w2 = np.around(w2, 2)
-print(w2, " are the initial weights for w2\n")             # Prints hidden layer of weights
-
 learnfactor = 10
 
-for i in range(1000):
-    d, w1, w2 = run(o, d, w1, w2, learnfactor)
+for i in range(2):
+    d, w1, w2 = train(o, d, w1, w2, learnfactor)
 
 '''
 np.set_printoptions(threshold=sys.maxsize)
@@ -227,8 +226,12 @@ mp = maxpool(conimg)
 print(conimg.shape)
 print(mp.shape)
 
-imageLocation = '\\Columbus_CSUAV_AFRL\\train'        # Where training images are stored relative to the CWD
-getFileImages(os.getcwd() + imageLocation)
+o = np.array([(0.51, 0.9, 0.88, 0.84, 0.05),
+              (0.4, 0.62, 0.22, 0.59, 0.1),
+              (0.11, 0.2, 0.74, 0.33, 0.14),
+              (0.47, 0.01, 0.85, 0.7, 0.09),
+              (0.76, 0.19, 0.72, 0.17, 0.57)])
+
 '''
 
 
