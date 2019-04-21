@@ -92,48 +92,66 @@ def deriveact(act):             # input activation result, output the derivative
     return act*(1-act)
 
 
-def run(o, d, w, learnfactor):
+def run(o, d, w1, w2, learnfactor):
     c = convolution(o, d)[0]
     z = maxpool(c)                                    # z[0] is max pool, z[1] is location of maxes
     i = z[0].flatten()
-    n = np.zeros((4, 1))                              # list of nodes after activation
+    n = np.zeros((4, 1))                              # list of input nodes after activation
 
     for x in range(i.size):
         n[x] = (round(activation(i[x]), 2))
 
     # print(n, "are the inputs to the net\n")            # Prints inputs into the dense network
 
-    delta = np.matmul(w, n)
+    feedforward = np.matmul(w1, n)                       # Feed input through first layer
+    for i in range(feedforward.size):
+        feedforward[i] = activation(feedforward[i])
 
-    for i in range(delta.size):
-        delta[i] = activation(delta[i])
+    actlayer1 = feedforward.copy()                       # Saves the output after activation for layer 1
 
-    deltasave = delta.copy()
+    feedforward = np.matmul(w2, feedforward)             # Feed input through second layer
+    for i in range(feedforward.size):
+        feedforward[i] = activation(feedforward[i])
+
+    deltasave = feedforward.copy()
 
     error = np.zeros((2, 1))
-    error[0] = delta[0] - 1
-    error[1] = delta[1]
+    error[0] = feedforward[0] - 1
+    error[1] = feedforward[1]
 
-    e = (delta[0] - 1)**2 + (delta[1])**2
+    e = (feedforward[0] - 1)**2 + (feedforward[1])**2
     print("Error =", e, " ***************************")
     print(deltasave)
 
-    errsig = np.zeros((2, 1))                                    # begin calculating new weights
-    #errsig = errsig[:, None]
-    for i in range(errsig.size):
-        errsig[i][0] = error[i] * deriveact(deltasave[i])
+    errsig2 = np.zeros((2, 1))                                   # Begin calculating new weights for w2
+    for i in range(errsig2.size):
+        errsig2[i][0] = error[i] * deriveact(deltasave[i])
 
-    weightgrad = np.matmul(errsig, np.transpose(n))
+    weightgrad2 = np.matmul(errsig2, np.transpose(actlayer1))
+
+    w2 = np.subtract(w2, weightgrad2)
+
+    errsig1 = np.zeros((2, 1))                                   # Begin calculating new weights for w1
+    errsig1_2 = np.zeros((2, 1))
+    for i in range(errsig1.size):
+        errsig1[i][0] = error[i] * deriveact(deltasave[i])
+
+    for i in range(errsig1_2.size):
+        errsig1_2[i][0] = error[1-i] * deriveact(deltasave[1-i])
+
+    weightgrad = np.add(errsig1, errsig1_2)
+
+    weightgrad = np.matmul(weightgrad, np.transpose(n))
     # print(weightgrad)
 
-    w = np.subtract(w, weightgrad)
+    w1 = np.subtract(w1, weightgrad)
 
-    delta[0] = delta[0] - 1
+    # feedforward[0] = feedforward[0] - 1
 
     # print(delta, "is Delta\n")
 
-    wt = w.transpose()
-    wt = np.matmul(wt, delta)
+    wt = w1.transpose()
+    wt = np.matmul(wt, error)
 
     gradientmapin = np.zeros((4, 1))
 
@@ -156,7 +174,7 @@ def run(o, d, w, learnfactor):
     d = np.subtract(d, congradient)                             # New Kernel
     # print(d, "New Kernel\n")
 
-    return d, w
+    return d, w1, w2
 
 
 o = np.array([(0.51, 0.9, 0.88, 0.84, 0.05),
@@ -174,15 +192,22 @@ d = np.around(d, 2)
               # (-0.51, 0.62)])
 
 stddev = 1/np.sqrt(np.prod(8))
-w = np.random.normal(loc=0, scale=stddev, size=8)  # Initializes weights randomly on a normal distribution
-w = np.reshape(w, (2, 4))                          # Reshape to a 2x4 matrix for multiplication
-w = np.around(w, 2)
-print(w, " are the initial weights\n")             # Prints hidden layer of weights
+w1 = np.random.normal(loc=0, scale=stddev, size=8)  # Initializes weights randomly on a normal distribution
+w1 = np.reshape(w1, (2, 4))                          # Reshape to a 2x4 matrix for multiplication
+w1 = np.around(w1, 2)
+print(w1, " are the initial weights for w1\n")             # Prints hidden layer of weights
 
-learnfactor = 100
 
-for i in range(500):
-    d, w = run(o, d, w, learnfactor)
+stddev = 1/np.sqrt(np.prod(4))
+w2 = np.random.normal(loc=0, scale=stddev, size=4)  # Initializes weights randomly on a normal distribution
+w2 = np.reshape(w2, (2, 2))                          # Reshape to a 2x4 matrix for multiplication
+w2 = np.around(w2, 2)
+print(w2, " are the initial weights for w2\n")             # Prints hidden layer of weights
+
+learnfactor = 10
+
+for i in range(1000):
+    d, w1, w2 = run(o, d, w1, w2, learnfactor)
 
 '''
 np.set_printoptions(threshold=sys.maxsize)
