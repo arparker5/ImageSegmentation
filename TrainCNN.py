@@ -1,4 +1,5 @@
 from PIL import Image
+from tempfile import TemporaryFile
 from skimage import data
 from matplotlib import pyplot as plt
 import numpy as np
@@ -7,6 +8,10 @@ import sys
 import glob
 import os
 import math
+
+
+def lossfunction(output, label):
+    return -np.sum(label * np.log(output))
 
 def softmax(rawoutput):
     output = np.exp(rawoutput)
@@ -123,7 +128,7 @@ def run(o, d, w1, w2):
         feedforward[i] = activation(feedforward[i])
 
 
-    error = np.zeros((2, 1))
+    # error = np.zeros((2, 1))
     # error = softmax(feedforward)
     feedforward = softmax(feedforward)
     # error[0] = feedforward[0] - 1
@@ -177,12 +182,13 @@ def train(o, d, w1, w2, learnfactor):  # Takes (data(o[], label), d[], w1, w2, l
         if o[g][1] == 1:                              # label == 1: training image is a car
             error[0] = feedforward[0] - 1
             error[1] = feedforward[1]
+            e = (feedforward[0] - 1) ** 2 + (feedforward[1]) ** 2
         else:                                       # Else: Training image is a negative
             error[0] = feedforward[0]
             error[1] = feedforward[1] - 1
-            #e = (feedforward[0]) ** 2 + (feedforward[1] - 1) ** 2
+            e = (feedforward[0]) ** 2 + (feedforward[1] - 1) ** 2
 
-        e = (feedforward[0] - 1) ** 2 + (feedforward[1]) ** 2
+        loss = lossfunction(feedforward, o[g][1]+1)
         print("Error =", e, " ***************************")
         print(feedforward)
 
@@ -235,6 +241,51 @@ def train(o, d, w1, w2, learnfactor):  # Takes (data(o[], label), d[], w1, w2, l
     return d, w1, w2
 
 
+def initialize():
+    stddev = 1/np.sqrt(np.prod(4900))
+    d = []
+    for i in range(3):
+        d.append(np.random.normal(loc=0, scale=stddev, size=4900))  # Initializes kernel randomly on a normal distribution
+        d[i] = np.reshape(d[i], (70, 70))
+
+
+    stddev = 1/np.sqrt(np.prod(2000))
+    w2 = np.random.normal(loc=0, scale=stddev, size=2000)  # Initializes weights randomly on a normal distribution
+    w2 = np.reshape(w2, (2, 1000))                             # Reshape to a 2x1000 matrix for multiplication
+    w2 = np.around(w2, 2)
+    print(w2, " are the initial weights for w2\n")             # Prints hidden layer of weights
+
+    stddev = 1/np.sqrt(np.prod(8649000))
+    w1 = np.random.normal(loc=0, scale=stddev, size=8649000)        # Initializes weights randomly on a normal distribution
+    w1 = np.reshape(w1, (1000, 8649))                          # Reshape to a 1000x8649 matrix for multiplication
+    w1 = np.around(w1, 2)
+
+    print(w1, " are the initial weights for w1\n")             # Prints hidden layer of weights
+
+    learnfactor = 10
+    '''
+    for i in range(1):
+        for k in range(2):                                              # run through the training images
+            for j in range(len(d)):                                     # Train all the filters'''
+    batchtest = []
+    for y in range(5):
+        batchtest.append(o[y])
+        batchtest.append(n[y])
+
+    d[0], w1, w2 = train(batchtest, d[0], w1, w2, learnfactor)        # Train a neg
+    d[0], w1, w2 = train(batchtest, d[0], w1, w2, learnfactor)        # Train a neg
+    d[0], w1, w2 = train(batchtest, d[0], w1, w2, learnfactor)
+    d[0], w1, w2 = train(batchtest, d[0], w1, w2, learnfactor)
+    run(n[70][0], d[0], w1, w2)
+    run(o[70][0], d[0], w1, w2)
+
+    np.save('w2.npy', w2)
+    np.save('w1.npy', w1)
+    np.save('d0.npy', d[0])
+
+
+    # np.set_printoptions(threshold=sys.maxsize)
+
 imageLocation = '\\Columbus_CSUAV_AFRL\\train'        # Where training images are stored relative to the CWD
 o = []
 n = []
@@ -244,71 +295,4 @@ for i in range(100):
     negimg = Image.open(negpics[i]).convert('L')
     o.append((scale(np.asarray(img), -1, 1), 1))
     n.append((scale(np.asarray(negimg), -1, 1), 0))
-
-stddev = 1/np.sqrt(np.prod(4900))
-d = []
-for i in range(3):
-    d.append(np.random.normal(loc=0, scale=stddev, size=4900))  # Initializes kernel randomly on a normal distribution
-    d[i] = np.reshape(d[i], (70, 70))
-
-
-stddev = 1/np.sqrt(np.prod(2000))
-w2 = np.random.normal(loc=0, scale=stddev, size=2000)  # Initializes weights randomly on a normal distribution
-w2 = np.reshape(w2, (2, 1000))                             # Reshape to a 2x1000 matrix for multiplication
-w2 = np.around(w2, 2)
-print(w2, " are the initial weights for w2\n")             # Prints hidden layer of weights
-
-stddev = 1/np.sqrt(np.prod(8649000))
-w1 = np.random.normal(loc=0, scale=stddev, size=8649000)        # Initializes weights randomly on a normal distribution
-w1 = np.reshape(w1, (1000, 8649))                          # Reshape to a 1000x8649 matrix for multiplication
-w1 = np.around(w1, 2)
-
-print(w1, " are the initial weights for w1\n")             # Prints hidden layer of weights
-
-
-learnfactor = 10
-'''
-for i in range(1):
-    for k in range(2):                                              # run through the training images
-        for j in range(len(d)):                                     # Train all the filters'''
-batchtest = []
-for y in range(5):
-    batchtest.append(o[y])
-    batchtest.append(n[y])
-
-d[0], w1, w2 = train(batchtest, d[0], w1, w2, learnfactor)        # Train a neg
-d[0], w1, w2 = train(batchtest, d[0], w1, w2, learnfactor)        # Train a neg
-d[0], w1, w2 = train(batchtest, d[0], w1, w2, learnfactor)
-d[0], w1, w2 = train(batchtest, d[0], w1, w2, learnfactor)
-run(n[70][0], d[0], w1, w2)
-run(o[70][0], d[0], w1, w2)
-
-
-#d[0], w1, w2 = train(n[0], d[0], w1, w2, learnfactor)        # Train a neg
-'''d[0], w1, w2 = train(n[0], d[0], w1, w2, learnfactor, 0)        # Train a neg
-
-d[0], w1, w2 = train(o[0], d[0], w1, w2, learnfactor, 1)        # Train a car
-d[0], w1, w2 = train(o[0], d[0], w1, w2, learnfactor, 1)        # Train a car
-d[0], w1, w2 = train(o[0], d[0], w1, w2, learnfactor, 1)        # Train a car'''
-
-
-
-
-
-#print((j+1)*(k+1)*2, "/ 30 images trained")
-'''
-avg = np.zeros((2, 1))
-for i in range(len(d)):
-    avg = np.add(avg, run(n[70], d[i], w1, w2))
-
-avg = np.divide(avg, len(d))
-print("Error average:", avg)
-if avg[0] > 0.70:
-    print("It's a car!")
-elif avg[0] < 0.30:
-    print("It is not a car")
-else:
-    print("Undetermined")'''
-
-# np.set_printoptions(threshold=sys.maxsize)
 

@@ -1,7 +1,7 @@
 .idea
 Columbus_CSUAV_AFRL
 venv
-greyscale.png
-greyscale2.png
-imgtest.jpeg
-imgtest2.png
+d0.npy
+w2.npy
+w1.npy
+__pycache__/
