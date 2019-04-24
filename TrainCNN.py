@@ -138,6 +138,7 @@ def train(o, d, w1, w2, learnfactor):  # Takes (data(o[], label), d[], w1, w2, l
     z = []
     p = []
     n = []
+    # feedforward = []
     errsig1 = []
     weightgrad = []
     weightgrad2 = []
@@ -150,10 +151,9 @@ def train(o, d, w1, w2, learnfactor):  # Takes (data(o[], label), d[], w1, w2, l
 
         for x in range(p[g].size):
             n[g][x] = (round(activation(p[g][x]), 2))           # list of input nodes after activation
-
         # print(n, "are the inputs to the net\n")            # Prints inputs into the dense network
-
         feedforward = np.matmul(w1, n[g])                   # Feed input through first layer
+
         for j in range(feedforward.size):
             feedforward[j] = activation(feedforward[j])
 
@@ -169,12 +169,12 @@ def train(o, d, w1, w2, learnfactor):  # Takes (data(o[], label), d[], w1, w2, l
         if o[g][1] == 1:                              # label == 1: training image is a car
             error[0] = feedforward[0] - 1
             error[1] = feedforward[1]
-            e = (feedforward[0] - 1) ** 2 + (feedforward[1]) ** 2
         else:                                       # Else: Training image is a negative
             error[0] = feedforward[0]
             error[1] = feedforward[1] - 1
-            e = (feedforward[0]) ** 2 + (feedforward[1] - 1) ** 2
-
+            #e = (feedforward[0]) ** 2 + (feedforward[1] - 1) ** 2
+            
+        e = (feedforward[0] - 1) ** 2 + (feedforward[1]) ** 2
         print("Error =", e, " ***************************")
         print(saveoutput)
 
@@ -200,11 +200,6 @@ def train(o, d, w1, w2, learnfactor):  # Takes (data(o[], label), d[], w1, w2, l
 
     w2 = np.subtract(w2, layer2grad)                    # nudge the weights
     w1 = np.subtract(w1, layer1grad)
-
-    # k_errsig = np.zeros(errsig1[0].shape)
-    # for j in range(len(errsig1)):                       # finds the average gradient for the kernel
-    #     k_errsig = np.add(k_errsig, errsig1[j])
-    # k_errsig = np.divide(k_errsig, len(errsig1))
 
     for g in range(len(o)):                   # Walk through all image inputs after convolution, get avg kernel gradient
         wt = w1.transpose()
@@ -256,9 +251,10 @@ w2 = np.around(w2, 2)
 print(w2, " are the initial weights for w2\n")             # Prints hidden layer of weights
 
 stddev = 1/np.sqrt(np.prod(8649000))
-w1 = np.random.normal(loc=0, scale=stddev, size=8649000)  # Initializes weights randomly on a normal distribution
+w1 = np.random.normal(loc=0, scale=stddev, size=8649000)        # Initializes weights randomly on a normal distribution
 w1 = np.reshape(w1, (1000, 8649))                          # Reshape to a 1000x8649 matrix for multiplication
 w1 = np.around(w1, 2)
+
 print(w1, " are the initial weights for w1\n")             # Prints hidden layer of weights
 
 
@@ -267,9 +263,8 @@ learnfactor = 10
 for i in range(1):
     for k in range(2):                                              # run through the training images
         for j in range(len(d)):                                     # Train all the filters'''
-batchtest = []
-batchtest.append(o[0])
-batchtest.append(o[1])
+batchtest = [o[0], o[1], o[2],
+             n[0], n[1], n[2]]
 
 d[0], w1, w2 = train(batchtest, d[0], w1, w2, learnfactor)        # Train a neg
 d[0], w1, w2 = train(batchtest, d[0], w1, w2, learnfactor)        # Train a neg
