@@ -8,6 +8,9 @@ import glob
 import os
 import math
 
+def softmax(rawoutput):
+    output = np.exp(rawoutput)
+    return output/np.sum(output)
 
 def scale(X, x_min, x_max):              # Normalizes the input image
     nom = (X-X.min())*(x_max-x_min)
@@ -119,17 +122,20 @@ def run(o, d, w1, w2):
     for i in range(feedforward.size):
         feedforward[i] = activation(feedforward[i])
 
+
     error = np.zeros((2, 1))
-    error[0] = feedforward[0] - 1
-    error[1] = feedforward[1]
+    # error = softmax(feedforward)
+    feedforward = softmax(feedforward)
+    # error[0] = feedforward[0] - 1
+    # error[1] = feedforward[1]
 
     e = (feedforward[0] - 1) ** 2 + (feedforward[1]) ** 2
     print("Error =", e, " ***************************")
     print(feedforward)
-    '''if feedforward[0] > 0.70:
+    if feedforward[0] > 0.70:
         print("It's a car!")
     else:
-        print("It is not a car")'''
+        print("It is not a car")
     return feedforward
 
 
@@ -138,12 +144,12 @@ def train(o, d, w1, w2, learnfactor):  # Takes (data(o[], label), d[], w1, w2, l
     z = []
     p = []
     n = []
-    # feedforward = []
     errsig1 = []
     weightgrad = []
     weightgrad2 = []
     congradient = []
     for g in range(len(o)):
+        print(g, "/20")
         c.append(convolution(o[g][0], d)[0])
         z.append(maxpool(c[g]))                                    # z[0] is max pool, z[1] is location of maxes
         p.append(z[g][0].flatten())
@@ -165,6 +171,8 @@ def train(o, d, w1, w2, learnfactor):  # Takes (data(o[], label), d[], w1, w2, l
 
         saveoutput = feedforward.copy()
 
+        feedforward = softmax(feedforward)
+
         error = np.zeros((2, 1))
         if o[g][1] == 1:                              # label == 1: training image is a car
             error[0] = feedforward[0] - 1
@@ -173,10 +181,10 @@ def train(o, d, w1, w2, learnfactor):  # Takes (data(o[], label), d[], w1, w2, l
             error[0] = feedforward[0]
             error[1] = feedforward[1] - 1
             #e = (feedforward[0]) ** 2 + (feedforward[1] - 1) ** 2
-            
+
         e = (feedforward[0] - 1) ** 2 + (feedforward[1]) ** 2
         print("Error =", e, " ***************************")
-        print(saveoutput)
+        print(feedforward)
 
         errsig2 = np.zeros((2, 1))                                   # Begin calculating new weights for w2
         for i in range(errsig2.size):
@@ -263,11 +271,18 @@ learnfactor = 10
 for i in range(1):
     for k in range(2):                                              # run through the training images
         for j in range(len(d)):                                     # Train all the filters'''
-batchtest = [o[0], o[1], o[2],
-             n[0], n[1], n[2]]
+batchtest = []
+for y in range(5):
+    batchtest.append(o[y])
+    batchtest.append(n[y])
 
 d[0], w1, w2 = train(batchtest, d[0], w1, w2, learnfactor)        # Train a neg
 d[0], w1, w2 = train(batchtest, d[0], w1, w2, learnfactor)        # Train a neg
+d[0], w1, w2 = train(batchtest, d[0], w1, w2, learnfactor)
+d[0], w1, w2 = train(batchtest, d[0], w1, w2, learnfactor)
+run(n[70][0], d[0], w1, w2)
+run(o[70][0], d[0], w1, w2)
+
 
 #d[0], w1, w2 = train(n[0], d[0], w1, w2, learnfactor)        # Train a neg
 '''d[0], w1, w2 = train(n[0], d[0], w1, w2, learnfactor, 0)        # Train a neg
